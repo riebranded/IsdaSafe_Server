@@ -2,8 +2,13 @@ from fastapi import HTTPException
 from google import genai
 from google.genai import types
 
+from app.cache import TTLCache
 from app.config import GEMINI_API_KEY, GEMINI_MODEL
 from app.schemas import FeedingRecommendation, FeedingRecommendationRequest
+
+# Sensor readings only change every 15 minutes, so recommendations for the same
+# species/readings are cached for that long instead of calling Gemini each time.
+_cache = TTLCache(ttl_seconds=15 * 60)
 
 try:
     if not GEMINI_API_KEY:
@@ -28,13 +33,7 @@ def _build_prompt(data: FeedingRecommendationRequest) -> str:
     )
 
 
-def get_feeding_recommendation(data: FeedingRecommendationRequest) -> FeedingRecommendation:
-    if _client is None:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Gemini client not configured: {_load_error}",
-        )
-
+def _request_recommendation(data: FeedingRecommendationRequest) -> FeedingRecommendation:
     try:
         response = _client.models.generate_content(
             model=GEMINI_MODEL,
@@ -53,3 +52,13 @@ def get_feeding_recommendation(data: FeedingRecommendationRequest) -> FeedingRec
         raise HTTPException(
             status_code=502, detail=f"Gemini returned an unparseable response: {exc}"
         ) from exc
+
+
+def get_feeding_recommendation(data: FeedingRecommendationRequest) -> FeedingRecommendation:
+    if _client is None:
+        raise HTTPException(
+            status_code=503,
+            detail=f"Gemini client not configured: {_load_error}",
+        )
+
+    return _cache.get_or_set(data.model_dump_json(), lambda: _request_recommendation(data))
