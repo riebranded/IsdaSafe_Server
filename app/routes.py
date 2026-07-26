@@ -1,7 +1,13 @@
 from fastapi import APIRouter, HTTPException
 
+from app.feeding_advisor import get_feeding_recommendation
 from app.predictor import predict_species
-from app.schemas import PredictionResponse, SensorInput
+from app.schemas import (
+    FeedingRecommendation,
+    FeedingRecommendationRequest,
+    PredictionResponse,
+    SensorInput,
+)
 
 router = APIRouter()
 
@@ -14,3 +20,13 @@ def predict(data: SensorInput) -> PredictionResponse:
         raise
     except Exception as exc:  # noqa: BLE001 - never leak a raw stack trace to the client
         raise HTTPException(status_code=500, detail=f"Prediction failed: {exc}") from exc
+
+
+@router.post("/feeding-recommendation", response_model=FeedingRecommendation)
+def feeding_recommendation(data: FeedingRecommendationRequest) -> FeedingRecommendation:
+    try:
+        return get_feeding_recommendation(data)
+    except HTTPException:
+        raise
+    except Exception as exc:  # noqa: BLE001 - never leak a raw stack trace to the client
+        raise HTTPException(status_code=500, detail=f"Feeding recommendation failed: {exc}") from exc
