@@ -7,9 +7,15 @@ from app.schemas import (
     FeedingRecommendationRequest,
     PredictionResponse,
     SensorInput,
+    SensorReading,
 )
 
 router = APIRouter()
+
+
+@router.post("/sensor-readings", response_model=SensorReading)
+def sensor_readings(data: SensorReading) -> SensorReading:
+    return data
 
 
 @router.post("/predict", response_model=PredictionResponse)
