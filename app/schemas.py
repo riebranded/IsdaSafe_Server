@@ -20,6 +20,9 @@ class FeedingRecommendationRequest(SensorInput):
 
 
 class SensorReading(BaseModel):
+    device_id: str = Field(
+        ..., min_length=1, max_length=64, description="Identification number of the sending device"
+    )
     dissolved_oxygen: float = Field(..., description="Dissolved oxygen level (mg/L)")
     ammonia: float = Field(..., description="Dissolved ammonia level (mg/L)")
     temperature: float = Field(..., description="Water temperature (C)")
